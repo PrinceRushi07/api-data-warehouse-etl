@@ -1,0 +1,52 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: dwh-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-sales_dwh}
+      POSTGRES_USER: ${POSTGRES_USER:-etl_user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  etl:
+    build: .
+    container_name: dwh-etl
+    depends_on:
+      postgres:
+        condition: service_healthy
+    env_file:
+      - path: .env
+        required: false
+    environment:
+      POSTGRES_HOST: postgres      # service name on the compose network
+      POSTGRES_PORT: "5432"
+    volumes:
+      - ./data:/app/data
+      - ./logs:/app/logs
+    # One-shot job: run on demand with `docker compose run --rm etl`
+    # or schedule it with cron / EventBridge / Airflow.
+    restart: "no"
+
+  # Optional local S3 for testing without an AWS account:
+  #   docker compose --profile s3-local up -d localstack
+  #   then set S3_ENABLED=true, S3_ENDPOINT_URL=http://localstack:4566 and create the bucket:
+  #   docker compose exec localstack awslocal s3 mb s3://your-etl-bucket
+  localstack:
+    image: localstack/localstack:3
+    profiles: ["s3-local"]
+    environment:
+      SERVICES: s3
+    ports:
+      - "4566:4566"
+
+volumes:
+  pgdata:

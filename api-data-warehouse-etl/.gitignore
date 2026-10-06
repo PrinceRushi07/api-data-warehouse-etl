@@ -1,0 +1,32 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+.pytest_cache/
+.coverage
+htmlcov/
+.mypy_cache/
+.ruff_cache/
+
+# Secrets / local config
+.env
+*.pem
+.aws/
+
+# Pipeline artefacts (keep folder skeletons only)
+data/raw/*
+data/processed/*
+data/rejected/*
+logs/*
+!data/raw/.gitkeep
+!data/processed/.gitkeep
+!data/rejected/.gitkeep
+!logs/.gitkeep
+
+# Docker / OS / IDE
+pgdata/
+.DS_Store
+.idea/
+.vscode/
